@@ -398,7 +398,7 @@ class TJBot {
             const params = {
                 objectMode: false,
                 contentType: 'audio/l16; rate=16000; channels=1',
-                model: `${this.config.Listen.language}_BroadbandModel`,
+                model: this.config.Listen.model || 'en-US_Multimedia',
                 inactivityTimeout: this.config.Listen.inactivityTimeout || 60,
                 interimResults: true,
                 backgroundAudioSuppression: this.config.Listen.backgroundAudioSuppression || 0.0,
@@ -414,7 +414,7 @@ class TJBot {
             this._mic.start();
             // handle errors
             this._sttTextStream.on('error', (err) => {
-                winston.error('an error occurred in the STT text stream', err);
+                winston.error('an error occurred in the STT text stream: ', err);
             });
         }
         const fd = this._sttTextStream;

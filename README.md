@@ -75,12 +75,12 @@ level = 'info'
 
 [Listen]
 # see 'arecord -l' for a list of recording devices
-device = 'plughw:1,0' # plugged-in USB card 1, device 0
+device = 'plughw:0,0' # plugged-in USB card 0, device 0
 inactivityTimeout = -1
 backgroundAudioSuppression = 0.4
 
-# see https://cloud.ibm.com/docs/speech-to-text?topic=speech-to-text-models-ng for available languages
-language = 'en-US_Multimedia'
+# see https://cloud.ibm.com/docs/speech-to-text?topic=speech-to-text-models-ng for available STT models
+model = 'en-US_Multimedia'
 
 [See]
 # camera resolution is width x height

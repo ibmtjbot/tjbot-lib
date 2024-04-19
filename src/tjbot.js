@@ -476,7 +476,7 @@ class TJBot {
             const params = {
                 objectMode: false,
                 contentType: 'audio/l16; rate=16000; channels=1',
-                model: `${this.config.Listen.language}_BroadbandModel`,
+                model: this.config.Listen.model || 'en-US_Multimedia',
                 inactivityTimeout: this.config.Listen.inactivityTimeout || 60,
                 interimResults: true,
                 backgroundAudioSuppression: this.config.Listen.backgroundAudioSuppression || 0.0,
