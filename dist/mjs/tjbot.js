@@ -239,34 +239,39 @@ class TJBot {
     _setupMicrophone() {
         winston.verbose(`initializing ${TJBot.Hardware.MICROPHONE}`);
         const micParams = {
-            rate: '16000',
-            channels: '1',
+            rate: this.config.Listen.microphoneRate,
+            channels: this.config.Listen.microphoneChannels,
             debug: false,
             exitOnSilence: 6,
         };
-        if (this.config.Listen.microphoneDeviceId) {
-            micParams.device = this.config.Listen.microphoneDeviceId;
+        if (this.config.Listen.device) {
+            micParams.device = this.config.Listen.device;
         }
         // create the microphone
         this._mic = Mic(micParams);
-        // (re-)create the mic audio stream and pipe it to STT
+        // save the input stream so we can pipe it to STT
         this._micInputStream = this._mic.getAudioStream();
+        // event handlers
         this._micInputStream.on('startComplete', () => {
-            winston.verbose('microphone started');
+            winston.verbose('🎤 microphone started');
         });
         this._micInputStream.on('pauseComplete', () => {
-            winston.verbose('microphone paused');
+            winston.verbose('🎤 microphone paused');
+        });
+        this._micInputStream.on('data', (data) => {
+            // turn this on for serious debugging, otherwise it's very noisy :)
+            // winston.verbose('🎤 microphone received data: ' + data.length + ' bytes');
         });
         // log errors in the mic input stream
         this._micInputStream.on('error', (err) => {
-            winston.error('the microphone input stream experienced an error', err);
+            winston.error('🎤 microphone input stream experienced an error', err);
         });
         this._micInputStream.on('processExitComplete', () => {
-            winston.verbose('microphone exit');
+            winston.verbose('🎤 microphone recording process exited');
         });
         // ignore silence
         this._micInputStream.on('silence', () => {
-            winston.verbose('microphone silence');
+            winston.verbose('🎤 microphone silence');
         });
     }
     /**
@@ -395,13 +400,17 @@ class TJBot {
             // create the microphone -> STT recognizer stream
             // see this page for additional documentation on the STT configuration parameters:
             // https://cloud.ibm.com/apidocs/speech-to-text?code=node#recognize-audio-websockets-
+            const rate = this.config.Listen.microphoneRate || 44100;
+            const channels = this.config.Listen.microphoneChannels || 2;
+            const inactivityTimeout = this.config.Listen.inactivityTimeout || 60;
+            const backgroundAudioSuppression = this.config.Listen.backgroundAudioSuppression || 0.0;
             const params = {
                 objectMode: false,
-                contentType: 'audio/l16; rate=16000; channels=1',
+                contentType: `audio/l16; rate=${rate}; channels=${channels}`,
                 model: this.config.Listen.model || 'en-US_Multimedia',
-                inactivityTimeout: this.config.Listen.inactivityTimeout || 60,
+                inactivityTimeout: inactivityTimeout,
                 interimResults: true,
-                backgroundAudioSuppression: this.config.Listen.backgroundAudioSuppression || 0.0,
+                backgroundAudioSuppression: backgroundAudioSuppression,
             };
             winston.debug(`recognizeUsingWebSocket() params: ${JSON.stringify(params)}`);
             // Create the stream.

@@ -78,6 +78,8 @@ level = 'info'
 device = 'plughw:0,0' # plugged-in USB card 0, device 0
 inactivityTimeout = -1
 backgroundAudioSuppression = 0.4
+microphoneRate = 44100
+microphoneChannels = 2
 
 # see https://cloud.ibm.com/docs/speech-to-text?topic=speech-to-text-models-ng for available STT models
 model = 'en-US_Multimedia'
