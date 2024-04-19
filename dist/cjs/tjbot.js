@@ -813,11 +813,11 @@ TJBot.Hardware = {
     SPEAKER: 'speaker',
 };
 /**
- * TJBot Watson services
+ * IBM AI services
  * @readonly
  * @enum {string}
  */
-TJBot.Services = {
+TJBot.Service = {
     SPEECH_TO_TEXT: 'speech_to_text',
     TEXT_TO_SPEECH: 'text_to_speech',
 };

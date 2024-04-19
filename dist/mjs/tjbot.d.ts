@@ -34,11 +34,11 @@ declare class TJBot {
         SPEAKER: string;
     };
     /**
-     * TJBot Watson services
+     * IBM AI services
      * @readonly
      * @enum {string}
      */
-    static readonly Services: {
+    static readonly Service: {
         SPEECH_TO_TEXT: string;
         TEXT_TO_SPEECH: string;
     };
