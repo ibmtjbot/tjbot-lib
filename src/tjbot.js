@@ -100,11 +100,11 @@ class TJBot {
 
     /**
      * TJBot constructor. After constructing a TJBot instance, call initialize() to configure its hardware.
-     * @param  {object} configuration   Configuration for the TJBot. See TJBot.DEFAULT_CONFIG for all configuration options.
-     * @param  {string=} credentialsFile (optional) Path to the 'ibm-credentials.env' file containing authentication credentials for IBM Watson services.
-     * @return {TJBot} instance of the TJBot class
+     * @param  {object=} configuration   (optional) Configuration for the TJBot.
+     * @param  {string=} credentialsFile (optional) Path to the 'ibm-credentials.env' file containing authentication credentials for IBM AI services.
+     * @return {TJBot} Instance of the TJBot class
      */
-    constructor(configFile = 'tjbot.toml', credentialsFile = '') {
+    constructor(configFile = 'tjbot.toml', credentialsFile = 'ibm-credentials.env') {
         this.config = TJBot._loadTJBotConfig(configFile);
 
         // set up logging
@@ -497,7 +497,7 @@ class TJBot {
 
             // handle errors
             this._sttTextStream.on('error', (err) => {
-                winston.error('an error occurred in the STT text stream', err);
+                winston.error('an error occurred in the STT text stream: ', err);
             });
         }
 
