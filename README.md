@@ -74,7 +74,8 @@ The default TJBot configuration is shown below. Values specified in your own `tj
 level = 'info' 
 
 [Listen]
-microphoneDeviceId = -1
+# see 'arecord -l' for a list of recording devices
+device = 'plughw:1,0' # plugged-in USB card 1, device 0
 inactivityTimeout = -1
 backgroundAudioSuppression = 0.4
 
@@ -92,8 +93,19 @@ verticalFlip = false
 horizontalFlip = false
 
 [Shine.NeoPixel]
-# see https://pinout.xyz for a complete listing of RPi pins
-gpioPin = 21 # GPIO21 / Physical pin 40
+# NeoPixels must be connected to GPIO10, GPIO12, GPIO18 or GPIO21 to work.
+# GPIO18 is the standard pin, but sound must be disabled to use GPIO18.
+# 
+# To disable sound, edit /boot/config.txt and change:
+#   dtparam=audio=on
+# to:
+#   dtparam=audio=off
+# and then reboot.
+# 
+# See https://pinout.xyz for a complete listing of RPi pins.
+# See https://learn.adafruit.com/neopixels-on-raspberry-pi/raspberry-pi-wiring
+# for more information about using NeoPixels with RPi.
+gpioPin = 18 # GPIO18 / Physical pin 12
 
 # if true, uses the GRB (instead of RGB) color format
 grbFormat = false
@@ -108,7 +120,7 @@ bluePin = 12  # GPIO12 / Physical pin 32
 voice = 'en-US_MichaelV3Voice'
 
 # use 'aplay -l' to see a list of playback devices
-speakerDeviceId = 'plughw:0,0' # plugged-in USB card 0, device 0
+device = 'plughw:0,0' # plugged-in USB card 0, device 0
 
 [Wave]
 servoPin = 7 # GPIO7 / Physical Pin 26
