@@ -51,7 +51,7 @@ bluePin = 12  # GPIO12 / Physical pin 32
 voice = 'en-US_MichaelV3Voice'
 
 # use 'aplay -l' to see a list of playback devices
-device = 'plughw:0,0' # plugged-in USB card 0, device 0
+device = 'plughw:1,0' # plugged-in USB card 1, device 0
 
 [Wave]
 servoPin = 7 # GPIO7 / Physical Pin 26

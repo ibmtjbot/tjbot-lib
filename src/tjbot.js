@@ -180,14 +180,14 @@ class TJBot {
                 break;
 
             case TJBot.Hardware.LED_NEOPIXEL:
-                this._setupLEDNeopixel(this.config.Shine.neopixel.gpioPin);
+                this._setupLEDNeopixel(this.config.Shine.NeoPixel.gpioPin);
                 break;
 
             case TJBot.Hardware.LED_COMMON_ANODE:
                 this._setupLEDCommonAnode(
-                    this.config.Shine.commonAnode.redPin,
-                    this.config.Shine.commonAnode.greenPin,
-                    this.config.Shine.commonAnode.bluePin,
+                    this.config.Shine.CommonAnode.redPin,
+                    this.config.Shine.CommonAnode.greenPin,
+                    this.config.Shine.CommonAnode.bluePin,
                 );
                 break;
 
@@ -618,7 +618,7 @@ class TJBot {
         if (this._neopixelLed) {
             const colors = new Uint32Array(1);
 
-            if (this.config.Shine.neopixel.grbFormat) {
+            if (this.config.Shine.NeoPixel.grbFormat) {
                 // convert to the 0xGGRRBB format for the LED
                 const grb = `0x${c[3]}${c[4]}${c[1]}${c[2]}${c[5]}${c[6]}`;
                 
@@ -631,7 +631,7 @@ class TJBot {
                 // convert to the 0xRRGGBB format for the LED
                 const rgb = `0x${c[1]}${c[2]}${c[3]}${c[4]}${c[5]}${c[6]}`;
                 
-                if (asPulze === false) {
+                if (asPulse === false) {
                     winston.verbose(`shining my LED to RGB color ${rgb}`);
                 }
 
