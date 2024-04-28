@@ -1,6 +1,6 @@
 /* eslint-disable import/extensions */
 /**
- * Copyright 2016-2023 IBM Corp. All Rights Reserved.
+ * Copyright 2016-2024 IBM Corp. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -110,9 +110,9 @@ class TJBot {
         if (credentialsFile !== '') {
             process.env.IBM_CREDENTIALS_FILE = credentialsFile;
         }
-        winston.info('Hello from TJBot!');
-        winston.verbose(`TJBot library version ${TJBot.VERSION}`);
-        winston.debug(`TJBot configuration: ${JSON.stringify(this.config)}`);
+        winston.info('👋 Hello from TJBot!');
+        winston.verbose(`🤖 TJBot library version ${TJBot.VERSION}`);
+        winston.debug(`🤖 TJBot configuration: ${JSON.stringify(this.config)}`);
     }
     static _loadTJBotConfig(configFile) {
         // load base config
@@ -152,7 +152,7 @@ class TJBot {
         if (!Array.isArray(hardware)) {
             throw new Error('hardware must be an array');
         }
-        winston.info(`Initializing TJBot with ${hardware}`);
+        winston.info(`🤖 Initializing TJBot with ${hardware}`);
         hardware.forEach((device) => {
             switch (device) {
                 case TJBot.Hardware.CAMERA:
@@ -186,7 +186,7 @@ class TJBot {
     * @private
     */
     _setupCamera() {
-        winston.verbose(`initializing ${TJBot.Hardware.CAMERA}`);
+        winston.verbose(`📷 initializing ${TJBot.Hardware.CAMERA}`);
         this._camera = libcamera;
     }
     /**
@@ -195,13 +195,13 @@ class TJBot {
     * @private
     */
     _setupLEDNeopixel(gpioPin) {
-        winston.verbose(`initializing ${TJBot.Hardware.LED_NEOPIXEL} on PIN ${gpioPin}`);
+        winston.verbose(`💡 initializing ${TJBot.Hardware.LED_NEOPIXEL} on PIN ${gpioPin}`);
         // init with 1 LED
         this._neopixelLed = ws281x;
         this._neopixelLed.init(1, {
             gpioPin,
         });
-        // capture 'this' context
+        // capture 'this' context so we can reference it in the callback
         const self = this;
         // reset the LED before the program exits
         process.on('SIGINT', () => {
@@ -219,7 +219,7 @@ class TJBot {
     * @private
     */
     _setupLEDCommonAnode(redPin, greenPin, bluePin) {
-        winston.verbose(`initializing ${TJBot.Hardware.LED_COMMON_ANODE} on RED PIN ${redPin}, GREEN PIN ${greenPin}, and BLUE PIN ${bluePin}`);
+        winston.verbose(`💡 initializing ${TJBot.Hardware.LED_COMMON_ANODE} on RED PIN ${redPin}, GREEN PIN ${greenPin}, and BLUE PIN ${bluePin}`);
         this._commonAnodeLed = {
             redPin: new Gpio(redPin, {
                 mode: Gpio.OUTPUT,
@@ -237,18 +237,22 @@ class TJBot {
      * @private
      */
     _setupMicrophone() {
-        winston.verbose(`initializing ${TJBot.Hardware.MICROPHONE}`);
-        const micParams = {
-            rate: this.config.Listen.microphoneRate,
-            channels: this.config.Listen.microphoneChannels,
+        winston.verbose(`🎤 initializing ${TJBot.Hardware.MICROPHONE}`);
+        const params = {
+            rate: this.config.Listen.microphoneRate || 44100,
+            channels: this.config.Listen.microphoneChannels || 2,
             debug: false,
             exitOnSilence: 6,
         };
         if (this.config.Listen.device) {
-            micParams.device = this.config.Listen.device;
+            winston.verbose('🎤 listening through user-defined audio device: ' + this.config.Listen.device);
+            params.device = this.config.Listen.device;
+        }
+        else {
+            winston.verbose('🎤 listening through default audio device');
         }
         // create the microphone
-        this._mic = Mic(micParams);
+        this._mic = Mic(params);
         // save the input stream so we can pipe it to STT
         this._micInputStream = this._mic.getAudioStream();
         // event handlers
@@ -280,7 +284,7 @@ class TJBot {
      * @private
      */
     _setupServo(pin) {
-        winston.verbose(`initializing ${TJBot.Hardware.SERVO} on PIN ${pin}`);
+        winston.verbose(`🦾 initializing ${TJBot.Hardware.SERVO} on PIN ${pin}`);
         this._motor = new Gpio(pin, {
             mode: Gpio.OUTPUT,
         });
@@ -290,7 +294,7 @@ class TJBot {
      * @private
      */
     _setupSpeaker() {
-        winston.verbose(`initializing ${TJBot.Hardware.SPEAKER}`);
+        winston.verbose(`🔈 initializing ${TJBot.Hardware.SPEAKER}`);
         this._soundplayer = SoundPlayer;
     }
     /**
@@ -300,7 +304,7 @@ class TJBot {
      * @private
      */
     _createServiceAPI(service) {
-        winston.verbose(`initializing ${service} service`);
+        winston.verbose(`🧠 initializing ${service} service`);
         switch (service) {
             case TJBot.Service.SPEECH_TO_TEXT: {
                 // https://cloud.ibm.com/apidocs/speech-to-text
@@ -412,7 +416,7 @@ class TJBot {
                 interimResults: true,
                 backgroundAudioSuppression: backgroundAudioSuppression,
             };
-            winston.debug(`recognizeUsingWebSocket() params: ${JSON.stringify(params)}`);
+            winston.debug(`🎤 recognizeUsingWebSocket() params: ${JSON.stringify(params)}`);
             // Create the stream.
             this._recognizeStream = this._stt.recognizeUsingWebSocket(params);
             this._recognizeStream.setEncoding('utf8');
@@ -431,7 +435,7 @@ class TJBot {
             fd.once('data', resolve);
         });
         const transcript = await end;
-        winston.info(`TJBot heard: "${transcript.trim()}"`);
+        winston.info(`🎤 TJBot heard: "${transcript.trim()}"`);
         return transcript.trim();
     }
     /**
@@ -442,7 +446,7 @@ class TJBot {
      */
     _pauseListening() {
         if (this._mic !== undefined) {
-            winston.verbose('listening paused');
+            winston.verbose('🎤 listening paused');
             this._mic.pause();
         }
     }
@@ -454,7 +458,7 @@ class TJBot {
      */
     _resumeListening() {
         if (this._mic !== undefined) {
-            winston.verbose('listening resumed');
+            winston.verbose('🎤 listening resumed');
             this._mic.resume();
         }
     }
@@ -476,7 +480,7 @@ class TJBot {
                 suffix: '.jpg',
             });
         }
-        winston.verbose(`capturing image at path: ${filePath}`);
+        winston.verbose(`📷 capturing image at path: ${filePath}`);
         // set the configuration options, which may have changed since the camera was initialized
         const cameraConfig = {
             output: filePath,
@@ -486,7 +490,7 @@ class TJBot {
             width: this.config.See.cameraResolution[0],
             height: this.config.See.cameraResolution[1],
         };
-        winston.debug(`camera options: ${JSON.stringify(cameraConfig)}`);
+        winston.debug(`📷 camera options: ${JSON.stringify(cameraConfig)}`);
         try {
             await this._camera.jpeg({ config: cameraConfig });
             return filePath;
@@ -521,7 +525,7 @@ class TJBot {
                 // convert to the 0xGGRRBB format for the LED
                 const grb = `0x${c[3]}${c[4]}${c[1]}${c[2]}${c[5]}${c[6]}`;
                 if (asPulse === false) {
-                    winston.verbose(`shining my LED to GRB color ${grb}`);
+                    winston.verbose(`💡 shining my LED to GRB color ${grb}`);
                 }
                 colors[0] = parseInt(grb, 16);
             }
@@ -529,7 +533,7 @@ class TJBot {
                 // convert to the 0xRRGGBB format for the LED
                 const rgb = `0x${c[1]}${c[2]}${c[3]}${c[4]}${c[5]}${c[6]}`;
                 if (asPulse === false) {
-                    winston.verbose(`shining my LED to RGB color ${rgb}`);
+                    winston.verbose(`💡 shining my LED to RGB color ${rgb}`);
                 }
                 colors[0] = parseInt(rgb, 16);
             }
@@ -580,7 +584,7 @@ class TJBot {
                 .replace('#', '0x');
         }
         // perform the ease
-        winston.info(`pulsing my LED to RGB color ${rgb}`);
+        winston.info(`💡 pulsing my LED to RGB color ${rgb}`);
         for (let i = 0; i < easeDelays.length; i += 1) {
             const c = i < colorRamp.length
                 ? colorRamp[i]
@@ -703,7 +707,7 @@ class TJBot {
             winston.error('TJBot tried to speak an empty message.');
             return; // exit if there's nothing to say!
         }
-        winston.verbose(`TJBot speaking with voice ${this.config.Speak.voice}`);
+        winston.verbose(`🔈 TJBot speaking with voice ${this.config.Speak.voice}`);
         const params = {
             text: message,
             voice: this.config.Speak.voice,
@@ -712,7 +716,7 @@ class TJBot {
         const info = temp.openSync('tjbot');
         const response = await this._tts.synthesize(params);
         // pipe the audio buffer to a file
-        winston.debug('writing audio buffer to temp file', info.path);
+        winston.debug('🔈 writing audio buffer to temp file', info.path);
         const fd = fs.createWriteStream(info.path);
         response.result.pipe(fd);
         // wait for the pipe to finish writing
@@ -722,7 +726,7 @@ class TJBot {
         });
         await end;
         // now play it
-        winston.info(`TJBot speaking: ${message}`);
+        winston.info(`🔈 TJBot speaking: ${message}`);
         await this.play(info.path);
     }
     /**
@@ -744,15 +748,21 @@ class TJBot {
             filename: soundFile,
             gain: 100,
             debug: true,
-            player: 'aplay',
-            device: this.config.Speak.device,
+            player: 'aplay'
         };
+        if (this.config.Speak.device) {
+            winston.verbose('🔈 playing through user-defined audio device: ' + this.config.Speak.device);
+            params.device = this.config.Speak.device;
+        }
+        else {
+            winston.verbose('🔈 playing through default audio device');
+        }
         const player = new this._soundplayer(params);
-        winston.debug('playing audio with parameters: ', params);
-        // capture 'this' context
+        winston.debug('🔈 playing audio with parameters: ', params);
+        // capture 'this' context so we can reference it in the callback
         const self = this;
         player.on('complete', () => {
-            winston.debug('audio playback finished');
+            winston.debug('🔈 audio playback finished');
             // resume listening
             self._resumeListening();
         });
@@ -774,7 +784,7 @@ class TJBot {
     armBack() {
         // make sure we have an arm
         this._assertCapability(TJBot.Capability.WAVE);
-        winston.info("Moving TJBot's arm back");
+        winston.info("🦾 Moving TJBot's arm back");
         this._motor.servoWrite(TJBot.SERVO.ARM_BACK);
     }
     /**
@@ -784,7 +794,7 @@ class TJBot {
     raiseArm() {
         // make sure we have an arm
         this._assertCapability(TJBot.Capability.WAVE);
-        winston.info("Raising TJBot's arm");
+        winston.info("🦾 Raising TJBot's arm");
         this._motor.servoWrite(TJBot.SERVO.ARM_UP);
     }
     /**
@@ -794,7 +804,7 @@ class TJBot {
     lowerArm() {
         // make sure we have an arm
         this._assertCapability(TJBot.Capability.WAVE);
-        winston.info("Lowering TJBot's arm");
+        winston.info("🦾 Lowering TJBot's arm");
         this._motor.servoWrite(TJBot.SERVO.ARM_DOWN);
     }
     /**
@@ -802,7 +812,7 @@ class TJBot {
      */
     async wave() {
         this._assertCapability(TJBot.Capability.WAVE);
-        winston.info("Waving TJBot's arm");
+        winston.info("🦾 Waving TJBot's arm");
         const delay = 200;
         this._motor.servoWrite(TJBot.SERVO.ARM_UP);
         TJBot.sleep(delay);

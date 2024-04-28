@@ -3,8 +3,11 @@
 level = 'info' 
 
 [Listen]
-# see 'arecord -l' for a list of recording devices
-device = 'plughw:0,0' # plugged-in USB card 0, device 0
+# 'device' specifies the audio device `arecord` will use for audio recording
+# in most cases, leaving this blank should just work. if you have difficulty
+# with audio recording, please refer to the TJBot wiki:
+#   https://github.com/ibmtjbot/tjbot/wiki/Troubleshooting-TJBot#audio-issues
+device = ''
 inactivityTimeout = -1
 backgroundAudioSuppression = 0.4
 microphoneRate = 44100
@@ -47,11 +50,14 @@ greenPin = 13 # GPIO13 / Physical pin 33
 bluePin = 12  # GPIO12 / Physical pin 32
 
 [Speak]
+# 'device' specifies the audio device `aplay` will use for audio playback
+# in most cases, leaving this blank should just work. if you have difficulty
+# with audio playback, please refer to the TJBot wiki:
+#   https://github.com/ibmtjbot/tjbot/wiki/Troubleshooting-TJBot#audio-issues
+device = ''
+
 # see https://cloud.ibm.com/docs/text-to-speech?topic=text-to-speech-voices for available voices
 voice = 'en-US_MichaelV3Voice'
-
-# use 'aplay -l' to see a list of playback devices
-device = 'plughw:1,0' # plugged-in USB card 1, device 0
 
 [Wave]
 servoPin = 7 # GPIO7 / Physical Pin 26
