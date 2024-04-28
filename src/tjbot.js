@@ -926,36 +926,36 @@ class TJBot {
     /** ------------------------------------------------------------------------ */
 
     /**
-     * Moves TJBot's arm all the way back. If this method doesn't move the arm all the way back, the servo motor stop point defined in TJBot.SERVO.ARM_BACK may need to be overridden. Valid servo values are in the range [500, 2300].
+     * Moves TJBot's arm all the way back. If this method doesn't move the arm all the way back, the servo motor stop point defined in TJBot.Servo.ARM_BACK may need to be overridden. Valid servo values are in the range [500, 2300].
      * @example tj.armBack()
      */
     armBack() {
         // make sure we have an arm
         this._assertCapability(TJBot.Capability.WAVE);
         winston.info("🦾 Moving TJBot's arm back");
-        this._motor.servoWrite(TJBot.SERVO.ARM_BACK);
+        this._motor.servoWrite(TJBot.Servo.ARM_BACK);
     }
 
     /**
-     * Raises TJBot's arm. If this method doesn't move the arm all the way back, the servo motor stop point defined in TJBot.SERVO.ARM_UP may need to be overridden. Valid servo values are in the range [500, 2300].
+     * Raises TJBot's arm. If this method doesn't move the arm all the way back, the servo motor stop point defined in TJBot.Servo.ARM_UP may need to be overridden. Valid servo values are in the range [500, 2300].
      * @example tj.raiseArm()
      */
     raiseArm() {
         // make sure we have an arm
         this._assertCapability(TJBot.Capability.WAVE);
         winston.info("🦾 Raising TJBot's arm");
-        this._motor.servoWrite(TJBot.SERVO.ARM_UP);
+        this._motor.servoWrite(TJBot.Servo.ARM_UP);
     }
 
     /**
-     * Lowers TJBot's arm. If this method doesn't move the arm all the way back, the servo motor stop point defined in TJBot.SERVO.ARM_DOWN may need to be overridden. Valid servo values are in the range [500, 2300].
+     * Lowers TJBot's arm. If this method doesn't move the arm all the way back, the servo motor stop point defined in TJBot.Servo.ARM_DOWN may need to be overridden. Valid servo values are in the range [500, 2300].
      * @example tj.lowerArm()
      */
     lowerArm() {
         // make sure we have an arm
         this._assertCapability(TJBot.Capability.WAVE);
         winston.info("🦾 Lowering TJBot's arm");
-        this._motor.servoWrite(TJBot.SERVO.ARM_DOWN);
+        this._motor.servoWrite(TJBot.Servo.ARM_DOWN);
     }
 
     /**
@@ -967,13 +967,13 @@ class TJBot {
 
         const delay = 200;
 
-        this._motor.servoWrite(TJBot.SERVO.ARM_UP);
+        this._motor.servoWrite(TJBot.Servo.ARM_UP);
         TJBot.sleep(delay);
 
-        this._motor.servoWrite(TJBot.SERVO.ARM_DOWN);
+        this._motor.servoWrite(TJBot.Servo.ARM_DOWN);
         TJBot.sleep(delay);
 
-        this._motor.servoWrite(TJBot.SERVO.ARM_UP);
+        this._motor.servoWrite(TJBot.Servo.ARM_UP);
         TJBot.sleep(delay);
     }
 }
