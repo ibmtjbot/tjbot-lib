@@ -129,25 +129,25 @@ class TJBot {
         winston.debug(`🤖 TJBot configuration: ${JSON.stringify(this.config)}`);
     }
 
+    static loadConfigFromTOML(configFile) {
+        const configPath = resolve(configFile, import.meta.url);
+        
+        try {
+            const configData = fs.readFileSync(new URL(configPath), 'utf8');
+            let config = TOML.parse(configData);
+        } catch (err) {
+            throw new Error(`unable to read tjbot default configuration from ${configFile}: ${err}`);
+        }
+    }
+
     static _loadTJBotConfig(configFile) {
         // load base config
-        let baseConfig = '';
+        let baseConfig = TJBot.loadConfigFromTOML('./tjbot.default.toml');
         let userConfig = '';
         
-        const baseConfigPath = resolve('./tjbot.default.toml', import.meta.url);
-
-        try {
-            // construct a URL because the file comes back with a file:// prefix
-            const data = fs.readFileSync(new URL(baseConfigPath), 'utf8');
-            baseConfig = TOML.parse(data);
-        } catch (err) {
-            throw new Error(`unable to read tjbot default configuration from tjbot.default.toml: ${err}`);
-        }
-
         try {
             if (fs.existsSync(configFile) && fs.lstatSync(configFile).isFile()) {
-                const data = fs.readFileSync(configFile, 'utf8');
-                userConfig = TOML.parse(data);
+                userConfig = TJBot.loadConfigFromTOML(configFile);
             }
         } catch (err) {
             throw new Error(`unable to read tjbot configuration from ${configFile}: ${err}`);
