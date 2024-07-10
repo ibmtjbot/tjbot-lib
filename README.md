@@ -214,6 +214,10 @@ $ npm install ~/Desktop/node-tjbotlib/
 $ node index.js
 ```
 
+## Repository Layout
+
+![Visualization of this repo](./diagram.svg)
+
 # License
 
 This project uses the [Apache License Version 2.0](LICENSE) software license.
