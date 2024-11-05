@@ -28,7 +28,6 @@ import { easeInOutQuad } from 'js-easing-functions';
 import path from 'node:path';
 import { resolve } from 'import-meta-resolve';
 
-
 // hardware modules
 import Mic from 'mic';
 import { libcamera } from 'libcamera';
