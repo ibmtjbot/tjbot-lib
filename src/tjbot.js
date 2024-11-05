@@ -15,24 +15,26 @@
  * limitations under the License.
  */
 
+// internal helpers
+import RPiDetect from './rpi-detect.js';
+import RPINeopixel from './rpi-neopixel.js';
+
 // node modules
 import temp from 'temp';
 import Promise from 'bluebird';
 import fs from 'fs';
 import colorToHex from 'colornames';
 import cm from 'color-model';
-import winston from 'winston';
+import winston, { config } from 'winston';
 import { once } from 'events';
 import TOML from '@iarna/toml';
 import { easeInOutQuad } from 'js-easing-functions';
 import path from 'node:path';
 import { resolve } from 'import-meta-resolve';
 
-
 // hardware modules
 import Mic from 'mic';
 import { libcamera } from 'libcamera';
-import ws281x from 'rpi-ws281x-native';
 import { Gpio } from 'pigpio';
 import SoundPlayer from 'sound-player';
 
@@ -124,30 +126,63 @@ class TJBot {
             process.env.IBM_CREDENTIALS_FILE = credentialsFile;
         }
 
-        winston.info('👋 Hello from TJBot!');
+        // figure out which RPi we're running on
+        this.rpiModel = RPiDetect.model();
+
+        winston.info(`👋 Hello from TJBot! Running on ${this.rpiModel}`);
         winston.verbose(`🤖 TJBot library version ${TJBot.VERSION}`);
         winston.debug(`🤖 TJBot configuration: ${JSON.stringify(this.config)}`);
     }
 
-    static loadConfigFromTOML(configFile) {
+    /**
+     * Helper method to load user-specified TJBot configuration files.
+     * @param  {string=} configFile   Path to the TOML file to load, usually 'tjbot.toml'.
+     * @return {TOML.JsonMap} The TOML configuration.
+     */
+    static loadUserConfig(configFile = 'tjbot.toml') {
+        var config = {};
+        
+        try {
+            const configData = fs.readFileSync(configFile, 'utf8');
+            config = TOML.parse(configData);
+        } catch (err) {
+            throw new Error(`unable to read TOML from ${configFile}: ${err}`);
+        }
+
+        return config;
+    }
+
+    /**
+     * Internal helper method to load TJBot's default TOML configuration from a specified file. Do not use this method within TJBot recipes. Instead, use `TJBot.loadUserConfig()`.
+     * @param  {string=} configFile   Path to the TOML file to load.
+     * @return {TOML.JsonMap} The TOML configuration.
+     */
+    static _loadInternalConfigFromTOML(configFile) {
         const configPath = resolve(configFile, import.meta.url);
+        var config = {};
         
         try {
             const configData = fs.readFileSync(new URL(configPath), 'utf8');
-            let config = TOML.parse(configData);
+            config = TOML.parse(configData);
         } catch (err) {
-            throw new Error(`unable to read tjbot default configuration from ${configFile}: ${err}`);
+            throw new Error(`unable to read TOML from ${configFile}: ${err}`);
         }
+
+        return config;
     }
 
+    /**
+    * Load TJBot's configuration from TOML files.
+    * @private
+    */
     static _loadTJBotConfig(configFile) {
         // load base config
-        let baseConfig = TJBot.loadConfigFromTOML('./tjbot.default.toml');
+        let baseConfig = TJBot._loadInternalConfigFromTOML('./tjbot.default.toml');
         let userConfig = '';
-        
+
         try {
             if (fs.existsSync(configFile) && fs.lstatSync(configFile).isFile()) {
-                userConfig = TJBot.loadConfigFromTOML(configFile);
+                userConfig = TJBot.loadUserConfig(configFile);
             }
         } catch (err) {
             throw new Error(`unable to read tjbot configuration from ${configFile}: ${err}`);
@@ -175,38 +210,46 @@ class TJBot {
 
         hardware.forEach((device) => {
             switch (device) {
-            case TJBot.Hardware.CAMERA:
-                this._setupCamera();
-                break;
+                case TJBot.Hardware.CAMERA:
+                    this._setupCamera();
+                    break;
 
-            case TJBot.Hardware.LED_NEOPIXEL:
-                this._setupLEDNeopixel(this.config.Shine.NeoPixel.gpioPin);
-                break;
+                case TJBot.Hardware.LED_NEOPIXEL:
+                    this._setupLEDNeopixel();
+                    break;
 
-            case TJBot.Hardware.LED_COMMON_ANODE:
-                this._setupLEDCommonAnode(
-                    this.config.Shine.CommonAnode.redPin,
-                    this.config.Shine.CommonAnode.greenPin,
-                    this.config.Shine.CommonAnode.bluePin,
-                );
-                break;
+                case TJBot.Hardware.LED_COMMON_ANODE:
+                    this._setupLEDCommonAnode(
+                        this.config.Shine.CommonAnode.redPin,
+                        this.config.Shine.CommonAnode.greenPin,
+                        this.config.Shine.CommonAnode.bluePin,
+                    );
+                    break;
 
-            case TJBot.Hardware.MICROPHONE:
-                this._setupMicrophone();
-                break;
+                case TJBot.Hardware.MICROPHONE:
+                    this._setupMicrophone();
+                    break;
 
-            case TJBot.Hardware.SERVO:
-                this._setupServo(this.config.Wave.servoPin);
-                break;
+                case TJBot.Hardware.SERVO:
+                    this._setupServo(this.config.Wave.servoPin);
+                    break;
 
-            case TJBot.Hardware.SPEAKER:
-                this._setupSpeaker();
-                break;
+                case TJBot.Hardware.SPEAKER:
+                    this._setupSpeaker();
+                    break;
 
-            default:
-                break;
+                default:
+                    break;
             }
         }, this);
+    }
+
+    /**
+    * Change the level of TJBot's logging.
+    * @param {string} level Logging level (see Winston's [list of logging levels](https://github.com/winstonjs/winston?tab=readme-ov-file#using-logging-levels))
+    */
+    setLogLevel(level) {
+        winston.level = level;
     }
 
     /** ------------------------------------------------------------------------ */
@@ -225,28 +268,22 @@ class TJBot {
 
     /**
     * Configure the Neopixel LED hardware.
-    * @param {int} gpioPin The GPIO pin number to which the LED is connected.
     * @private
     */
-    _setupLEDNeopixel(gpioPin) {
-        winston.verbose(`💡 initializing ${TJBot.Hardware.LED_NEOPIXEL} on PIN ${gpioPin}`);
+    _setupLEDNeopixel() {
+        var config = {};
 
-        // init with 1 LED
-        this._neopixelLed = ws281x;
-        this._neopixelLed.init(1, {
-            gpioPin,
-        });
+        if (RPiDetect.isPi5()) {
+            // if we're on an RPi 5, we need to use the SPI interface
+            config['spiInterface'] = this.config.Shine.NeoPixel.spiInterface;
+            winston.verbose(`💡 initializing ${TJBot.Hardware.LED_NEOPIXEL} on SPI ${config['spiInterface']}`);
+        } else {
+            // otherwise we use which ever GPIO pin was specified in the config
+            config['gpioPin'] = this.config.Shine.NeoPixel.gpioPin;
+            winston.verbose(`💡 initializing ${TJBot.Hardware.LED_NEOPIXEL} on SPI ${config['gpioPin']}`);
+        }
 
-        // capture 'this' context so we can reference it in the callback
-        const self = this;
-
-        // reset the LED before the program exits
-        process.on('SIGINT', () => {
-            self._neopixelLed.reset();
-            process.nextTick(() => {
-                process.exit(0);
-            });
-        });
+        this._neopixelLed = RPINeopixel.led(config);
     }
 
     /**
@@ -360,20 +397,20 @@ class TJBot {
         winston.verbose(`🧠 initializing ${service} service`);
 
         switch (service) {
-        case TJBot.Service.SPEECH_TO_TEXT: {
-            // https://cloud.ibm.com/apidocs/speech-to-text
-            this._stt = new SpeechToTextV1({});
-            break;
-        }
+            case TJBot.Service.SPEECH_TO_TEXT: {
+                // https://cloud.ibm.com/apidocs/speech-to-text
+                this._stt = new SpeechToTextV1({});
+                break;
+            }
 
-        case TJBot.Service.TEXT_TO_SPEECH: {
-            // https://cloud.ibm.com/apidocs/text-to-speech
-            this._tts = new TextToSpeechV1({});
-            break;
-        }
+            case TJBot.Service.TEXT_TO_SPEECH: {
+                // https://cloud.ibm.com/apidocs/text-to-speech
+                this._tts = new TextToSpeechV1({});
+                break;
+            }
 
-        default:
-            break;
+            default:
+                break;
         }
     }
 
@@ -385,66 +422,66 @@ class TJBot {
      */
     _assertCapability(capability) {
         switch (capability) {
-        case TJBot.Capability.LISTEN:
-            if (!this._mic) {
-                throw new Error(
-                    'TJBot is not configured to listen. '
+            case TJBot.Capability.LISTEN:
+                if (!this._mic) {
+                    throw new Error(
+                        'TJBot is not configured to listen. '
                         + 'Please check that you included the '
                         + `${TJBot.Hardware.MICROPHONE} hardware in the TJBot initialize() method.`,
-                );
-            }
-            if (!this._stt) {
-                this._createServiceAPI(TJBot.Service.SPEECH_TO_TEXT);
-            }
-            break;
+                    );
+                }
+                if (!this._stt) {
+                    this._createServiceAPI(TJBot.Service.SPEECH_TO_TEXT);
+                }
+                break;
 
-        case TJBot.Capability.LOOK:
-            if (!this._camera) {
-                throw new Error(
-                    'TJBot is not configured to look. '
+            case TJBot.Capability.LOOK:
+                if (!this._camera) {
+                    throw new Error(
+                        'TJBot is not configured to look. '
                         + 'Please check that you included the '
                         + `${TJBot.Hardware.CAMERA} hardware in the TJBot initialize() method.`,
-                );
-            }
-            break;
+                    );
+                }
+                break;
 
-        case TJBot.Capability.SHINE:
-            // one LED should be defined
-            if (!this._neopixelLed && !this._commonAnodeLed) {
-                throw new Error(
-                    'TJBot is not configured with an LED. '
+            case TJBot.Capability.SHINE:
+                // one LED should be defined
+                if (!this._neopixelLed && !this._commonAnodeLed) {
+                    throw new Error(
+                        'TJBot is not configured with an LED. '
                         + 'Please check that you included the '
                         + `${TJBot.Hardware.LED_NEOPIXEL} or ${TJBot.Hardware.LED_COMMON_ANODE} `
                         + 'hardware in the TJBot initialize() method.',
-                );
-            }
-            break;
+                    );
+                }
+                break;
 
-        case TJBot.Capability.SPEAK:
-            if (!this._soundplayer) {
-                throw new Error(
-                    'TJBot is not configured to speak. '
+            case TJBot.Capability.SPEAK:
+                if (!this._soundplayer) {
+                    throw new Error(
+                        'TJBot is not configured to speak. '
                         + 'Please check that you included the '
                         + `${TJBot.Hardware.SPEAKER} hardware in the TJBot initialize() method.`,
-                );
-            }
-            if (!this._tts) {
-                this._createServiceAPI(TJBot.Service.TEXT_TO_SPEECH);
-            }
-            break;
+                    );
+                }
+                if (!this._tts) {
+                    this._createServiceAPI(TJBot.Service.TEXT_TO_SPEECH);
+                }
+                break;
 
-        case TJBot.Capability.WAVE:
-            if (!this._motor) {
-                throw new Error(
-                    'TJBot is not configured with an arm. '
+            case TJBot.Capability.WAVE:
+                if (!this._motor) {
+                    throw new Error(
+                        'TJBot is not configured with an arm. '
                         + 'Please check that you included the '
                         + `${TJBot.Hardware.SERVO} hardware in the TJBot initialize() method.`,
-                );
-            }
-            break;
+                    );
+                }
+                break;
 
-        default:
-            break;
+            default:
+                break;
         }
     }
 
@@ -564,7 +601,7 @@ class TJBot {
      */
     async look(filePath = '') {
         this._assertCapability(TJBot.Capability.LOOK);
-        
+
         if (filePath === '') {
             filePath = temp.path({
                 prefix: 'tjbot',
@@ -573,7 +610,7 @@ class TJBot {
         }
 
         winston.verbose(`📷 capturing image at path: ${filePath}`);
-        
+
         // set the configuration options, which may have changed since the camera was initialized
         const cameraConfig = {
             output: filePath,
@@ -587,7 +624,7 @@ class TJBot {
         winston.debug(`📷 camera options: ${JSON.stringify(cameraConfig)}`);
 
         try {
-            await this._camera.jpeg({config: cameraConfig});
+            await this._camera.jpeg({ config: cameraConfig });
             return filePath;
         } catch (err) {
             winston.error('error taking picture', err);
@@ -607,11 +644,16 @@ class TJBot {
      * follow an #RRGGBB format.
      * @see {@link https://github.com/timoxley/colornames|Colornames} for a list of color names.
      */
-    shine(color, asPulse=false) {
+    shine(color, asPulse = false) {
         this._assertCapability(TJBot.Capability.SHINE);
 
         // normalize the color
-        const c = this._normalizeColor(color);
+        let c = this._normalizeColor(color);
+
+        // remove leading '#' if present
+        if (c.startsWith('#')) {
+            c = c.substring(1);
+        }
 
         // shine! will shine on both LEDs if they are both set up
         if (this._commonAnodeLed) {
@@ -619,29 +661,7 @@ class TJBot {
         }
 
         if (this._neopixelLed) {
-            const colors = new Uint32Array(1);
-
-            if (this.config.Shine.NeoPixel.grbFormat) {
-                // convert to the 0xGGRRBB format for the LED
-                const grb = `0x${c[3]}${c[4]}${c[1]}${c[2]}${c[5]}${c[6]}`;
-                
-                if (asPulse === false) {
-                    winston.verbose(`💡 shining my LED to GRB color ${grb}`);
-                }
-
-                colors[0] = parseInt(grb, 16);
-            } else {
-                // convert to the 0xRRGGBB format for the LED
-                const rgb = `0x${c[1]}${c[2]}${c[3]}${c[4]}${c[5]}${c[6]}`;
-                
-                if (asPulse === false) {
-                    winston.verbose(`💡 shining my LED to RGB color ${rgb}`);
-                }
-
-                colors[0] = parseInt(rgb, 16);
-            }
-
-            this._neopixelLed.render(colors);
+            this._renderNeopixelLed(c);
         }
     }
 
@@ -810,7 +830,7 @@ class TJBot {
 
     /**
     * Render the given rgb color for the common anode led.
-    * @param {string} hexColor Color in hex format
+    * @param {string} hexColor Color in hex format (e.g. "AA00FF", no leading "0x")
     * @private
     */
     _renderCommonAnodeLed(hexColor) {
@@ -818,6 +838,15 @@ class TJBot {
         this._commonAnodeLed.redPin.pwmWrite(rgb[0] == null ? 255 : 255 - rgb[0]);
         this._commonAnodeLed.greenPin.pwmWrite(rgb[1] == null ? 255 : 255 - rgb[1]);
         this._commonAnodeLed.bluePin.pwmWrite(rgb[2] == null ? 255 : 255 - rgb[2]);
+    }
+
+    /**
+    * Render the given rgb color for the NeoPixel led.
+    * @param {string} hexColor Color in hex format (e.g. "AA00FF", no leading "0x")
+    * @private
+    */
+    _renderNeopixelLed(hexColor) {
+        this._neopixelLed.render(hexColor);
     }
 
     /** ------------------------------------------------------------------------ */
@@ -889,7 +918,7 @@ class TJBot {
             debug: true,
             player: 'aplay'
         };
-        
+
         if (this.config.Speak.device) {
             winston.verbose('🔈 playing through user-defined audio device: ' + this.config.Speak.device);
             params.device = this.config.Speak.device;

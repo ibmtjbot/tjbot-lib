@@ -98,7 +98,15 @@ verticalFlip = false
 horizontalFlip = false
 
 [Shine.NeoPixel]
-# NeoPixels must be connected to GPIO10, GPIO12, GPIO18 or GPIO21 to work.
+# On Raspberry Pi 5 models, we use the Serial Peripheral Interface (SPI)
+# to communicate with the NeoPixel LED. For GPIO10 (physical pin 19), this
+# interface is exposed in the filesystem as /dev/spidev0.0. If your LED
+# is connected to a different PIN, you may need to change the SPI interface.
+spiInterface = "/dev/spidev0.0"
+
+# On all other Raspberry Pi models, NeoPixels must be connected to one of these
+# GPIO pins to work: GPIO10, GPIO12, GPIO18, GPIO21.
+# 
 # GPIO18 is the standard pin, but sound must be disabled to use GPIO18.
 # 
 # To disable sound, edit /boot/config.txt and change:
@@ -111,9 +119,6 @@ horizontalFlip = false
 # See https://learn.adafruit.com/neopixels-on-raspberry-pi/raspberry-pi-wiring
 # for more information about using NeoPixels with RPi.
 gpioPin = 18 # GPIO18 / Physical pin 12
-
-# if true, uses the GRB (instead of RGB) color format
-grbFormat = false
 
 [Shine.CommonAnode]
 redPin = 19   # GPIO19 / Physical pin 35

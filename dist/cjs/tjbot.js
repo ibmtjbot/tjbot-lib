@@ -15,6 +15,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -28,13 +51,16 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+// internal helpers
+const rpi_detect_js_1 = __importDefault(require("./rpi-detect.js"));
+const rpi_neopixel_js_1 = __importDefault(require("./rpi-neopixel.js"));
 // node modules
 const temp_1 = __importDefault(require("temp"));
 const bluebird_1 = __importDefault(require("bluebird"));
 const fs_1 = __importDefault(require("fs"));
 const colornames_1 = __importDefault(require("colornames"));
 const color_model_1 = __importDefault(require("color-model"));
-const winston_1 = __importDefault(require("winston"));
+const winston_1 = __importStar(require("winston"));
 const events_1 = require("events");
 const toml_1 = __importDefault(require("@iarna/toml"));
 const js_easing_functions_1 = require("js-easing-functions");
@@ -43,7 +69,6 @@ const import_meta_resolve_1 = require("import-meta-resolve");
 // hardware modules
 const mic_1 = __importDefault(require("mic"));
 const libcamera_1 = require("libcamera");
-const rpi_ws281x_native_1 = __importDefault(require("rpi-ws281x-native"));
 const pigpio_1 = require("pigpio");
 const sound_player_1 = __importDefault(require("sound-player"));
 // watson modules
@@ -75,27 +100,56 @@ class TJBot {
         if (credentialsFile !== '') {
             process.env.IBM_CREDENTIALS_FILE = credentialsFile;
         }
-        winston_1.default.info('👋 Hello from TJBot!');
+        // figure out which RPi we're running on
+        this.rpiModel = rpi_detect_js_1.default.model();
+        winston_1.default.info(`👋 Hello from TJBot! Running on ${this.rpiModel}`);
         winston_1.default.verbose(`🤖 TJBot library version ${TJBot.VERSION}`);
         winston_1.default.debug(`🤖 TJBot configuration: ${JSON.stringify(this.config)}`);
     }
-    static _loadTJBotConfig(configFile) {
-        // load base config
-        let baseConfig = '';
-        let userConfig = '';
-        const baseConfigPath = (0, import_meta_resolve_1.resolve)('./tjbot.default.toml', import.meta.url);
+    /**
+     * Helper method to load user-specified TJBot configuration files.
+     * @param  {string=} configFile   Path to the TOML file to load, usually 'tjbot.toml'.
+     * @return {TOML.JsonMap} The TOML configuration.
+     */
+    static loadUserConfig(configFile = 'tjbot.toml') {
+        var config = {};
         try {
-            // construct a URL because the file comes back with a file:// prefix
-            const data = fs_1.default.readFileSync(new URL(baseConfigPath), 'utf8');
-            baseConfig = toml_1.default.parse(data);
+            const configData = fs_1.default.readFileSync(configFile, 'utf8');
+            config = toml_1.default.parse(configData);
         }
         catch (err) {
-            throw new Error(`unable to read tjbot default configuration from tjbot.default.toml: ${err}`);
+            throw new Error(`unable to read TOML from ${configFile}: ${err}`);
         }
+        return config;
+    }
+    /**
+     * Internal helper method to load TJBot's default TOML configuration from a specified file. Do not use this method within TJBot recipes. Instead, use `TJBot.loadUserConfig()`.
+     * @param  {string=} configFile   Path to the TOML file to load.
+     * @return {TOML.JsonMap} The TOML configuration.
+     */
+    static _loadInternalConfigFromTOML(configFile) {
+        const configPath = (0, import_meta_resolve_1.resolve)(configFile, import.meta.url);
+        var config = {};
+        try {
+            const configData = fs_1.default.readFileSync(new URL(configPath), 'utf8');
+            config = toml_1.default.parse(configData);
+        }
+        catch (err) {
+            throw new Error(`unable to read TOML from ${configFile}: ${err}`);
+        }
+        return config;
+    }
+    /**
+    * Load TJBot's configuration from TOML files.
+    * @private
+    */
+    static _loadTJBotConfig(configFile) {
+        // load base config
+        let baseConfig = TJBot._loadInternalConfigFromTOML('./tjbot.default.toml');
+        let userConfig = '';
         try {
             if (fs_1.default.existsSync(configFile) && fs_1.default.lstatSync(configFile).isFile()) {
-                const data = fs_1.default.readFileSync(configFile, 'utf8');
-                userConfig = toml_1.default.parse(data);
+                userConfig = TJBot.loadUserConfig(configFile);
             }
         }
         catch (err) {
@@ -125,7 +179,7 @@ class TJBot {
                         this._setupCamera();
                         break;
                     case TJBot.Hardware.LED_NEOPIXEL:
-                        this._setupLEDNeopixel(this.config.Shine.NeoPixel.gpioPin);
+                        this._setupLEDNeopixel();
                         break;
                     case TJBot.Hardware.LED_COMMON_ANODE:
                         this._setupLEDCommonAnode(this.config.Shine.CommonAnode.redPin, this.config.Shine.CommonAnode.greenPin, this.config.Shine.CommonAnode.bluePin);
@@ -145,6 +199,13 @@ class TJBot {
             }, this);
         });
     }
+    /**
+    * Change the level of TJBot's logging.
+    * @param {string} level Logging level (see Winston's [list of logging levels](https://github.com/winstonjs/winston?tab=readme-ov-file#using-logging-levels))
+    */
+    setLogLevel(level) {
+        winston_1.default.level = level;
+    }
     /** ------------------------------------------------------------------------ */
     /** INTERNAL HARDWARE & WATSON SERVICE INITIALIZATION                        */
     /** ------------------------------------------------------------------------ */
@@ -158,25 +219,21 @@ class TJBot {
     }
     /**
     * Configure the Neopixel LED hardware.
-    * @param {int} gpioPin The GPIO pin number to which the LED is connected.
     * @private
     */
-    _setupLEDNeopixel(gpioPin) {
-        winston_1.default.verbose(`💡 initializing ${TJBot.Hardware.LED_NEOPIXEL} on PIN ${gpioPin}`);
-        // init with 1 LED
-        this._neopixelLed = rpi_ws281x_native_1.default;
-        this._neopixelLed.init(1, {
-            gpioPin,
-        });
-        // capture 'this' context so we can reference it in the callback
-        const self = this;
-        // reset the LED before the program exits
-        process.on('SIGINT', () => {
-            self._neopixelLed.reset();
-            process.nextTick(() => {
-                process.exit(0);
-            });
-        });
+    _setupLEDNeopixel() {
+        var config = {};
+        if (rpi_detect_js_1.default.isPi5()) {
+            // if we're on an RPi 5, we need to use the SPI interface
+            config['spiInterface'] = this.config.Shine.NeoPixel.spiInterface;
+            winston_1.default.verbose(`💡 initializing ${TJBot.Hardware.LED_NEOPIXEL} on SPI ${config['spiInterface']}`);
+        }
+        else {
+            // otherwise we use which ever GPIO pin was specified in the config
+            config['gpioPin'] = this.config.Shine.NeoPixel.gpioPin;
+            winston_1.default.verbose(`💡 initializing ${TJBot.Hardware.LED_NEOPIXEL} on SPI ${config['gpioPin']}`);
+        }
+        this._neopixelLed = rpi_neopixel_js_1.default.led(config);
     }
     /**
     * Configure the common anode RGB LED hardware.
@@ -441,8 +498,8 @@ class TJBot {
      * @return {string} Path at which the photo was saved.
      * @async
      */
-    look(filePath = '') {
-        return __awaiter(this, void 0, void 0, function* () {
+    look() {
+        return __awaiter(this, arguments, void 0, function* (filePath = '') {
             this._assertCapability(TJBot.Capability.LOOK);
             if (filePath === '') {
                 filePath = temp_1.default.path({
@@ -485,30 +542,17 @@ class TJBot {
     shine(color, asPulse = false) {
         this._assertCapability(TJBot.Capability.SHINE);
         // normalize the color
-        const c = this._normalizeColor(color);
+        let c = this._normalizeColor(color);
+        // remove leading '#' if present
+        if (c.startsWith('#')) {
+            c = c.substring(1);
+        }
         // shine! will shine on both LEDs if they are both set up
         if (this._commonAnodeLed) {
             this._renderCommonAnodeLed(c);
         }
         if (this._neopixelLed) {
-            const colors = new Uint32Array(1);
-            if (this.config.Shine.NeoPixel.grbFormat) {
-                // convert to the 0xGGRRBB format for the LED
-                const grb = `0x${c[3]}${c[4]}${c[1]}${c[2]}${c[5]}${c[6]}`;
-                if (asPulse === false) {
-                    winston_1.default.verbose(`💡 shining my LED to GRB color ${grb}`);
-                }
-                colors[0] = parseInt(grb, 16);
-            }
-            else {
-                // convert to the 0xRRGGBB format for the LED
-                const rgb = `0x${c[1]}${c[2]}${c[3]}${c[4]}${c[5]}${c[6]}`;
-                if (asPulse === false) {
-                    winston_1.default.verbose(`💡 shining my LED to RGB color ${rgb}`);
-                }
-                colors[0] = parseInt(rgb, 16);
-            }
-            this._neopixelLed.render(colors);
+            this._renderNeopixelLed(c);
         }
     }
     /**
@@ -522,8 +566,8 @@ class TJBot {
      * @see {@link https://github.com/timoxley/colornames|Colornames} for a list of color names.
      * @async
      */
-    pulse(color, duration = 1.0) {
-        return __awaiter(this, void 0, void 0, function* () {
+    pulse(color_1) {
+        return __awaiter(this, arguments, void 0, function* (color, duration = 1.0) {
             this._assertCapability(TJBot.Capability.SHINE);
             if (duration < 0.5) {
                 throw new Error('TJBot does not recommend pulsing for less than 0.5 seconds.');
@@ -656,7 +700,7 @@ class TJBot {
     }
     /**
     * Render the given rgb color for the common anode led.
-    * @param {string} hexColor Color in hex format
+    * @param {string} hexColor Color in hex format (e.g. "AA00FF", no leading "0x")
     * @private
     */
     _renderCommonAnodeLed(hexColor) {
@@ -664,6 +708,14 @@ class TJBot {
         this._commonAnodeLed.redPin.pwmWrite(rgb[0] == null ? 255 : 255 - rgb[0]);
         this._commonAnodeLed.greenPin.pwmWrite(rgb[1] == null ? 255 : 255 - rgb[1]);
         this._commonAnodeLed.bluePin.pwmWrite(rgb[2] == null ? 255 : 255 - rgb[2]);
+    }
+    /**
+    * Render the given rgb color for the NeoPixel led.
+    * @param {string} hexColor Color in hex format (e.g. "AA00FF", no leading "0x")
+    * @private
+    */
+    _renderNeopixelLed(hexColor) {
+        this._neopixelLed.render(hexColor);
     }
     /** ------------------------------------------------------------------------ */
     /** SPEAK                                                                    */
@@ -755,34 +807,34 @@ class TJBot {
     /** WAVE                                                                     */
     /** ------------------------------------------------------------------------ */
     /**
-     * Moves TJBot's arm all the way back. If this method doesn't move the arm all the way back, the servo motor stop point defined in TJBot.SERVO.ARM_BACK may need to be overridden. Valid servo values are in the range [500, 2300].
+     * Moves TJBot's arm all the way back. If this method doesn't move the arm all the way back, the servo motor stop point defined in TJBot.Servo.ARM_BACK may need to be overridden. Valid servo values are in the range [500, 2300].
      * @example tj.armBack()
      */
     armBack() {
         // make sure we have an arm
         this._assertCapability(TJBot.Capability.WAVE);
         winston_1.default.info("🦾 Moving TJBot's arm back");
-        this._motor.servoWrite(TJBot.SERVO.ARM_BACK);
+        this._motor.servoWrite(TJBot.Servo.ARM_BACK);
     }
     /**
-     * Raises TJBot's arm. If this method doesn't move the arm all the way back, the servo motor stop point defined in TJBot.SERVO.ARM_UP may need to be overridden. Valid servo values are in the range [500, 2300].
+     * Raises TJBot's arm. If this method doesn't move the arm all the way back, the servo motor stop point defined in TJBot.Servo.ARM_UP may need to be overridden. Valid servo values are in the range [500, 2300].
      * @example tj.raiseArm()
      */
     raiseArm() {
         // make sure we have an arm
         this._assertCapability(TJBot.Capability.WAVE);
         winston_1.default.info("🦾 Raising TJBot's arm");
-        this._motor.servoWrite(TJBot.SERVO.ARM_UP);
+        this._motor.servoWrite(TJBot.Servo.ARM_UP);
     }
     /**
-     * Lowers TJBot's arm. If this method doesn't move the arm all the way back, the servo motor stop point defined in TJBot.SERVO.ARM_DOWN may need to be overridden. Valid servo values are in the range [500, 2300].
+     * Lowers TJBot's arm. If this method doesn't move the arm all the way back, the servo motor stop point defined in TJBot.Servo.ARM_DOWN may need to be overridden. Valid servo values are in the range [500, 2300].
      * @example tj.lowerArm()
      */
     lowerArm() {
         // make sure we have an arm
         this._assertCapability(TJBot.Capability.WAVE);
         winston_1.default.info("🦾 Lowering TJBot's arm");
-        this._motor.servoWrite(TJBot.SERVO.ARM_DOWN);
+        this._motor.servoWrite(TJBot.Servo.ARM_DOWN);
     }
     /**
      * Waves TJBots's arm once.
@@ -792,11 +844,11 @@ class TJBot {
             this._assertCapability(TJBot.Capability.WAVE);
             winston_1.default.info("🦾 Waving TJBot's arm");
             const delay = 200;
-            this._motor.servoWrite(TJBot.SERVO.ARM_UP);
+            this._motor.servoWrite(TJBot.Servo.ARM_UP);
             TJBot.sleep(delay);
-            this._motor.servoWrite(TJBot.SERVO.ARM_DOWN);
+            this._motor.servoWrite(TJBot.Servo.ARM_DOWN);
             TJBot.sleep(delay);
-            this._motor.servoWrite(TJBot.SERVO.ARM_UP);
+            this._motor.servoWrite(TJBot.Servo.ARM_UP);
             TJBot.sleep(delay);
         });
     }

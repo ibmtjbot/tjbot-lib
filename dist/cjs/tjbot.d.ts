@@ -52,7 +52,23 @@ declare class TJBot {
         ARM_UP: number;
         ARM_DOWN: number;
     };
-    static _loadTJBotConfig(configFile: any): any;
+    /**
+     * Helper method to load user-specified TJBot configuration files.
+     * @param  {string=} configFile   Path to the TOML file to load, usually 'tjbot.toml'.
+     * @return {TOML.JsonMap} The TOML configuration.
+     */
+    static loadUserConfig(configFile?: string | undefined): TOML.JsonMap;
+    /**
+     * Internal helper method to load TJBot's default TOML configuration from a specified file. Do not use this method within TJBot recipes. Instead, use `TJBot.loadUserConfig()`.
+     * @param  {string=} configFile   Path to the TOML file to load.
+     * @return {TOML.JsonMap} The TOML configuration.
+     */
+    static _loadInternalConfigFromTOML(configFile?: string | undefined): TOML.JsonMap;
+    /**
+    * Load TJBot's configuration from TOML files.
+    * @private
+    */
+    private static _loadTJBotConfig;
     /** ------------------------------------------------------------------------ */
     /** UTILITY METHODS                                                          */
     /** ------------------------------------------------------------------------ */
@@ -69,12 +85,18 @@ declare class TJBot {
      */
     constructor(configFile?: string, credentialsFile?: string | undefined);
     config: any;
+    rpiModel: string;
     /**
      * @param  {array} hardware List of hardware peripherals attached to TJBot.
      * @see {@link #TJBot+Hardware} for a list of supported hardware.
      * @async
      */
     initialize(hardware: array): Promise<void>;
+    /**
+    * Change the level of TJBot's logging.
+    * @param {string} level Logging level (see Winston's [list of logging levels](https://github.com/winstonjs/winston?tab=readme-ov-file#using-logging-levels))
+    */
+    setLogLevel(level: string): void;
     /** ------------------------------------------------------------------------ */
     /** INTERNAL HARDWARE & WATSON SERVICE INITIALIZATION                        */
     /** ------------------------------------------------------------------------ */
@@ -83,14 +105,19 @@ declare class TJBot {
     * @private
     */
     private _setupCamera;
-    _camera: import("libcamera/dist/types").PiCameraOutput | undefined;
+    _camera: import("libcamera/dist/types.js").PiCameraOutput | undefined;
     /**
     * Configure the Neopixel LED hardware.
-    * @param {int} gpioPin The GPIO pin number to which the LED is connected.
     * @private
     */
     private _setupLEDNeopixel;
-    _neopixelLed: any;
+    _neopixelLed: {
+        _spi: any;
+        render(color: string): void;
+    } | {
+        _neopixelLed: any;
+        render(color: any): void;
+    } | undefined;
     /**
     * Configure the common anode RGB LED hardware.
     * @param {int} redPin The pin number to which the led red pin is connected.
@@ -148,7 +175,7 @@ declare class TJBot {
      * @async
      */
     listen(): Promise<any>;
-    _recognizeStream: import("ibm-watson/lib/recognize-stream") | undefined;
+    _recognizeStream: import("ibm-watson/lib/recognize-stream.js") | undefined;
     _sttTextStream: any;
     /**
      * Internal method for pausing listening, used when
@@ -229,10 +256,16 @@ declare class TJBot {
     private _convertHexToRgbColor;
     /**
     * Render the given rgb color for the common anode led.
-    * @param {string} hexColor Color in hex format
+    * @param {string} hexColor Color in hex format (e.g. "AA00FF", no leading "0x")
     * @private
     */
     private _renderCommonAnodeLed;
+    /**
+    * Render the given rgb color for the NeoPixel led.
+    * @param {string} hexColor Color in hex format (e.g. "AA00FF", no leading "0x")
+    * @private
+    */
+    private _renderNeopixelLed;
     /** ------------------------------------------------------------------------ */
     /** SPEAK                                                                    */
     /** ------------------------------------------------------------------------ */
@@ -252,17 +285,17 @@ declare class TJBot {
     /** WAVE                                                                     */
     /** ------------------------------------------------------------------------ */
     /**
-     * Moves TJBot's arm all the way back. If this method doesn't move the arm all the way back, the servo motor stop point defined in TJBot.SERVO.ARM_BACK may need to be overridden. Valid servo values are in the range [500, 2300].
+     * Moves TJBot's arm all the way back. If this method doesn't move the arm all the way back, the servo motor stop point defined in TJBot.Servo.ARM_BACK may need to be overridden. Valid servo values are in the range [500, 2300].
      * @example tj.armBack()
      */
     armBack(): void;
     /**
-     * Raises TJBot's arm. If this method doesn't move the arm all the way back, the servo motor stop point defined in TJBot.SERVO.ARM_UP may need to be overridden. Valid servo values are in the range [500, 2300].
+     * Raises TJBot's arm. If this method doesn't move the arm all the way back, the servo motor stop point defined in TJBot.Servo.ARM_UP may need to be overridden. Valid servo values are in the range [500, 2300].
      * @example tj.raiseArm()
      */
     raiseArm(): void;
     /**
-     * Lowers TJBot's arm. If this method doesn't move the arm all the way back, the servo motor stop point defined in TJBot.SERVO.ARM_DOWN may need to be overridden. Valid servo values are in the range [500, 2300].
+     * Lowers TJBot's arm. If this method doesn't move the arm all the way back, the servo motor stop point defined in TJBot.Servo.ARM_DOWN may need to be overridden. Valid servo values are in the range [500, 2300].
      * @example tj.lowerArm()
      */
     lowerArm(): void;
@@ -274,3 +307,4 @@ declare class TJBot {
 import { Gpio } from 'pigpio';
 import SpeechToTextV1 from 'ibm-watson/speech-to-text/v1.js';
 import TextToSpeechV1 from 'ibm-watson/text-to-speech/v1.js';
+import TOML from '@iarna/toml';
