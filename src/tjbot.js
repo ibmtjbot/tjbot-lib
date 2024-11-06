@@ -135,11 +135,11 @@ class TJBot {
     }
 
     /**
-     * Helper method to load user-specified TJBot configuration files.
+     * Helper method to load recipe-specific configuration from the user-facing TJBot configuration file.
      * @param  {string=} configFile   Path to the TOML file to load, usually 'tjbot.toml'.
-     * @return {TOML.JsonMap} The TOML configuration.
+     * @return {TOML.JsonMap} The TOML configuration specified in the [Recipe] section.
      */
-    static loadUserConfig(configFile = 'tjbot.toml') {
+    static loadRecipeConfig(configFile = 'tjbot.toml') {
         var config = {};
         
         try {
@@ -149,7 +149,7 @@ class TJBot {
             throw new Error(`unable to read TOML from ${configFile}: ${err}`);
         }
 
-        return config;
+        return config.Recipe;
     }
 
     /**
