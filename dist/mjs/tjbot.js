@@ -119,7 +119,7 @@ class TJBot {
         winston.debug(`🤖 TJBot configuration: ${JSON.stringify(this.config)}`);
     }
     /**
-     * Helper method to load user-specified TJBot configuration files.
+     * Helper method to load user-specific configuration from the user-facing TJBot configuration file.
      * @param  {string=} configFile   Path to the TOML file to load, usually 'tjbot.toml'.
      * @return {TOML.JsonMap} The TOML configuration.
      */
@@ -133,6 +133,14 @@ class TJBot {
             throw new Error(`unable to read TOML from ${configFile}: ${err}`);
         }
         return config;
+    }
+    /**
+     * Helper method to load recipe-specific configuration from the user-facing TJBot configuration file.
+     * @param  {string=} configFile   Path to the TOML file to load, usually 'tjbot.toml'.
+     * @return {TOML.JsonMap} The TOML configuration specified in the [Recipe] section.
+     */
+    static loadRecipeConfig(configFile = 'tjbot.toml') {
+        return TJBot.loadUserConfig().Recipe;
     }
     /**
      * Internal helper method to load TJBot's default TOML configuration from a specified file. Do not use this method within TJBot recipes. Instead, use `TJBot.loadUserConfig()`.

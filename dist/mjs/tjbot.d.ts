@@ -53,11 +53,17 @@ declare class TJBot {
         ARM_DOWN: number;
     };
     /**
-     * Helper method to load user-specified TJBot configuration files.
+     * Helper method to load user-specific configuration from the user-facing TJBot configuration file.
      * @param  {string=} configFile   Path to the TOML file to load, usually 'tjbot.toml'.
      * @return {TOML.JsonMap} The TOML configuration.
      */
     static loadUserConfig(configFile?: string | undefined): TOML.JsonMap;
+    /**
+     * Helper method to load recipe-specific configuration from the user-facing TJBot configuration file.
+     * @param  {string=} configFile   Path to the TOML file to load, usually 'tjbot.toml'.
+     * @return {TOML.JsonMap} The TOML configuration specified in the [Recipe] section.
+     */
+    static loadRecipeConfig(configFile?: string | undefined): TOML.JsonMap;
     /**
      * Internal helper method to load TJBot's default TOML configuration from a specified file. Do not use this method within TJBot recipes. Instead, use `TJBot.loadUserConfig()`.
      * @param  {string=} configFile   Path to the TOML file to load.
