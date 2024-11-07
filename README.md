@@ -78,6 +78,7 @@ level = 'info'
 # in most cases, leaving this blank should just work. if you have difficulty
 # with audio recording, please refer to the TJBot wiki:
 #   https://github.com/ibmtjbot/tjbot/wiki/Troubleshooting-TJBot#audio-issues
+# also, you can use `aplay -l` to list available audio output devices
 device = ''
 inactivityTimeout = -1
 backgroundAudioSuppression = 0.4
@@ -130,6 +131,7 @@ bluePin = 12  # GPIO12 / Physical pin 32
 # in most cases, leaving this blank should just work. if you have difficulty
 # with audio playback, please refer to the TJBot wiki:
 #   https://github.com/ibmtjbot/tjbot/wiki/Troubleshooting-TJBot#audio-issues
+# also, you can use `aplay -l` to list available audio output devices
 device = ''
 
 # see https://cloud.ibm.com/docs/text-to-speech?topic=text-to-speech-voices for available voices
