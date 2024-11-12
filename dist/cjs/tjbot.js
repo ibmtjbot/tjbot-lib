@@ -180,7 +180,7 @@ class TJBot {
             if (!Array.isArray(hardware)) {
                 throw new Error('hardware must be an array');
             }
-            winston_1.default.info(`🤖 Initializing TJBot with ${', '.join(hardware)}`);
+            winston_1.default.info(`🤖 Initializing TJBot with ${hardware.join(', ')}`);
             hardware.forEach((device) => {
                 switch (device) {
                     case TJBot.Hardware.CAMERA:
