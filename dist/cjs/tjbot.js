@@ -180,7 +180,7 @@ class TJBot {
             if (!Array.isArray(hardware)) {
                 throw new Error('hardware must be an array');
             }
-            winston_1.default.info(`🤖 Initializing TJBot with ${hardware}`);
+            winston_1.default.info(`🤖 Initializing TJBot with ${', '.join(hardware)}`);
             hardware.forEach((device) => {
                 switch (device) {
                     case TJBot.Hardware.CAMERA:
@@ -468,7 +468,7 @@ class TJBot {
                 fd.once('data', resolve);
             });
             const transcript = yield end;
-            winston_1.default.info(`🎤 TJBot heard: "${transcript.trim()}"`);
+            winston_1.default.verbose(`👂 TJBot heard: "${transcript.trim()}"`);
             return transcript.trim();
         });
     }
@@ -608,7 +608,7 @@ class TJBot {
                     .replace('#', '0x');
             }
             // perform the ease
-            winston_1.default.info(`💡 pulsing my LED to RGB color ${rgb}`);
+            winston_1.default.verbose(`💡 pulsing my LED to RGB color ${rgb}`);
             for (let i = 0; i < easeDelays.length; i += 1) {
                 const c = i < colorRamp.length
                     ? colorRamp[i]
@@ -760,7 +760,7 @@ class TJBot {
             });
             yield end;
             // now play it
-            winston_1.default.info(`🔈 TJBot speaking: ${message}`);
+            winston_1.default.verbose(`🔈 TJBot speaking: ${message}`);
             yield this.play(info.path);
         });
     }
@@ -821,7 +821,7 @@ class TJBot {
     armBack() {
         // make sure we have an arm
         this._assertCapability(TJBot.Capability.WAVE);
-        winston_1.default.info("🦾 Moving TJBot's arm back");
+        winston_1.default.verbose("🦾 Moving TJBot's arm back");
         this._motor.servoWrite(TJBot.Servo.ARM_BACK);
     }
     /**
@@ -831,7 +831,7 @@ class TJBot {
     raiseArm() {
         // make sure we have an arm
         this._assertCapability(TJBot.Capability.WAVE);
-        winston_1.default.info("🦾 Raising TJBot's arm");
+        winston_1.default.verbose("🦾 Raising TJBot's arm");
         this._motor.servoWrite(TJBot.Servo.ARM_UP);
     }
     /**
@@ -841,7 +841,7 @@ class TJBot {
     lowerArm() {
         // make sure we have an arm
         this._assertCapability(TJBot.Capability.WAVE);
-        winston_1.default.info("🦾 Lowering TJBot's arm");
+        winston_1.default.verbose("🦾 Lowering TJBot's arm");
         this._motor.servoWrite(TJBot.Servo.ARM_DOWN);
     }
     /**
@@ -850,7 +850,7 @@ class TJBot {
     wave() {
         return __awaiter(this, void 0, void 0, function* () {
             this._assertCapability(TJBot.Capability.WAVE);
-            winston_1.default.info("🦾 Waving TJBot's arm");
+            winston_1.default.verbose("🦾 Waving TJBot's arm");
             const delay = 200;
             this._motor.servoWrite(TJBot.Servo.ARM_UP);
             TJBot.sleep(delay);
